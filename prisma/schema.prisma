@@ -1,0 +1,268 @@
+// Gabisystem — Schema Prisma v1.0
+// Gerado conforme arquitetura técnica definida
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── CAMADA 1: MULTI-TENANCY ─────────────────────────────────────────────────
+
+model Tenant {
+  id            String   @id @default(uuid())
+  nome          String
+  cnpj          String?  @unique
+  plano         Plano    @default(FREE)
+  configuracoes Json     @default("{}")
+  ativo         Boolean  @default(true)
+  criadoEm      DateTime @default(now()) @map("criado_em")
+
+  // Relações
+  usuarios      Usuario[]
+  pessoas       Pessoa[]
+  produtos      Produto[]
+  movimentos    Movimento[]
+  contextoIA    TenantContextoIA?
+  logsIA        LogIA[]
+  contasCodigo  ContaPlano[]
+
+  @@map("tenants")
+}
+
+enum Plano {
+  FREE
+  BASIC
+  PRO
+}
+
+// ─── CAMADA 2: USUÁRIOS E ACESSO ─────────────────────────────────────────────
+
+model Usuario {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  nome       String
+  email      String   @unique
+  senhaHash  String   @map("senha_hash")
+  perfil     Perfil   @default(OPERACIONAL)
+  ativo      Boolean  @default(true)
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  // Relações
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  movimentos Movimento[]
+  logsIA     LogIA[]
+
+  @@map("usuarios")
+}
+
+enum Perfil {
+  DONO
+  GESTOR
+  OPERACIONAL
+}
+
+// ─── CAMADA 3: CADASTROS BASE ────────────────────────────────────────────────
+
+model Pessoa {
+  id              String          @id @default(uuid())
+  tenantId        String          @map("tenant_id")
+  tipo            TipoPessoa
+  relacionamento  Relacionamento
+  nome            String
+  cpfCnpj         String?         @map("cpf_cnpj")
+  contato         Json            @default("{}")
+  endereco        Json            @default("{}")
+  metadadosIA     Json            @default("{}") @map("metadados_ia")
+  ativo           Boolean         @default(true)
+  criadoEm        DateTime        @default(now()) @map("criado_em")
+
+  // Relações
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  movimentoItens  MovimentoItem[]
+
+  @@map("pessoas")
+}
+
+enum TipoPessoa {
+  FISICA
+  JURIDICA
+  GOVERNO
+}
+
+enum Relacionamento {
+  CLIENTE
+  FORNECEDOR
+  FUNCIONARIO
+  SOCIO
+  OUTRO
+}
+
+model Produto {
+  id              String       @id @default(uuid())
+  tenantId        String       @map("tenant_id")
+  tipo            TipoProduto
+  nome            String
+  descricao       String?
+  unidade         String       @default("un")
+  precoReferencia Decimal?     @map("preco_referencia") @db.Decimal(15, 2)
+  grupo           String?
+  subgrupo        String?
+  metadadosIA     Json         @default("{}") @map("metadados_ia")
+  ativo           Boolean      @default(true)
+  criadoEm        DateTime     @default(now()) @map("criado_em")
+
+  // Relações
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  movimentoItens  MovimentoItem[]
+
+  @@map("produtos")
+}
+
+enum TipoProduto {
+  PRODUTO
+  SERVICO
+}
+
+// ─── PLANO DE CONTAS ─────────────────────────────────────────────────────────
+
+model ContaPlano {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  codigo      String
+  nome        String
+  grupo       String
+  subgrupo    String?
+  tipo        TipoConta
+  padrao      Boolean  @default(false)
+  ativo       Boolean  @default(true)
+  criadoEm   DateTime @default(now()) @map("criado_em")
+
+  // Relações
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, codigo])
+  @@map("contas_plano")
+}
+
+enum TipoConta {
+  RECEITA
+  CUSTO
+  DESPESA
+  INVESTIMENTO
+  OBRIGACAO_FISCAL
+  OUTRO
+}
+
+// ─── CAMADA 4: MOVIMENTOS ────────────────────────────────────────────────────
+
+model Movimento {
+  id               String          @id @default(uuid())
+  tenantId         String          @map("tenant_id")
+  tipo             TipoMovimento
+  subtipo          String
+  dataMovimento    DateTime        @map("data_movimento")
+  dataCompetencia  DateTime        @map("data_competencia")
+  valor            Decimal         @db.Decimal(15, 2)
+  descricao        String?
+  origemRegistro   OrigemRegistro  @default(MANUAL) @map("origem_registro")
+  textoOriginal    Json?           @map("texto_original")
+  status           StatusMovimento @default(RASCUNHO)
+  criadoPor        String          @map("criado_por")
+  criadoEm         DateTime        @default(now()) @map("criado_em")
+
+  // Relações
+  tenant           Tenant              @relation(fields: [tenantId], references: [id])
+  usuario          Usuario             @relation(fields: [criadoPor], references: [id])
+  itens            MovimentoItem[]
+  contabil         MovimentoContabil[]
+
+  @@map("movimentos")
+}
+
+enum TipoMovimento {
+  FINANCEIRO
+  PRODUTO
+  PESSOA
+}
+
+enum OrigemRegistro {
+  MANUAL
+  IA
+  IMPORTACAO
+}
+
+enum StatusMovimento {
+  RASCUNHO
+  CONFIRMADO
+  CANCELADO
+}
+
+model MovimentoItem {
+  id            String    @id @default(uuid())
+  movimentoId   String    @map("movimento_id")
+  pessoaId      String?   @map("pessoa_id")
+  produtoId     String?   @map("produto_id")
+  quantidade    Decimal   @default(1) @db.Decimal(15, 4)
+  valorUnitario Decimal   @default(0) @map("valor_unitario") @db.Decimal(15, 2)
+  valorTotal    Decimal   @default(0) @map("valor_total") @db.Decimal(15, 2)
+  observacao    String?
+
+  // Relações
+  movimento     Movimento @relation(fields: [movimentoId], references: [id])
+  pessoa        Pessoa?   @relation(fields: [pessoaId], references: [id])
+  produto       Produto?  @relation(fields: [produtoId], references: [id])
+
+  @@map("movimento_itens")
+}
+
+model MovimentoContabil {
+  id           String    @id @default(uuid())
+  movimentoId  String    @map("movimento_id")
+  contaDebito  String    @map("conta_debito")
+  contaCredito String    @map("conta_credito")
+  valor        Decimal   @db.Decimal(15, 2)
+  historico    String?
+
+  // Relações
+  movimento    Movimento @relation(fields: [movimentoId], references: [id])
+
+  @@map("movimentos_contabil")
+}
+
+// ─── CAMADA 5: CONTEXTO DA IA ─────────────────────────────────────────────────
+
+model TenantContextoIA {
+  id                      String   @id @default(uuid())
+  tenantId                String   @unique @map("tenant_id")
+  segmentoNegocio         String?  @map("segmento_negocio")
+  descricaoNegocio        String?  @map("descricao_negocio")
+  categoriasCustomizadas  Json     @default("{}") @map("categorias_customizadas")
+  regrasClassificacao     Json     @default("[]") @map("regras_classificacao")
+  atualizadoEm            DateTime @updatedAt @map("atualizado_em")
+
+  // Relações
+  tenant                  Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("tenant_contexto_ia")
+}
+
+model LogIA {
+  id                    String   @id @default(uuid())
+  tenantId              String   @map("tenant_id")
+  usuarioId             String   @map("usuario_id")
+  inputUsuario          String   @map("input_usuario")
+  interpretacaoIA       Json     @map("interpretacao_ia")
+  confirmadoPeloUsuario Boolean  @default(false) @map("confirmado_pelo_usuario")
+  correcaoUsuario       Json?    @map("correcao_usuario")
+  criadoEm              DateTime @default(now()) @map("criado_em")
+
+  // Relações
+  tenant                Tenant   @relation(fields: [tenantId], references: [id])
+  usuario               Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@map("logs_ia")
+}
