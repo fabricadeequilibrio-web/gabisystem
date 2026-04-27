@@ -1,11 +1,22 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma/client";
+import Link from "next/link";
 
 export default async function DashboardPage() {
   const sessao = await auth();
   if (!sessao) redirect("/login");
 
   const usuario = sessao.user as any;
+
+  // Verifica se onboarding foi feito
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: usuario.tenantId },
+    select: { configuracoes: true },
+  });
+
+  const config = tenant?.configuracoes as any;
+  const onboardingCompleto = config?.onboardingCompleto === true;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -20,10 +31,7 @@ export default async function DashboardPage() {
               <p className="text-xs text-gray-500">{usuario.tenantNome}</p>
             </div>
             <form action="/api/auth/signout" method="POST">
-              <button
-                type="submit"
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
+              <button type="submit" className="text-sm text-gray-500 hover:text-gray-700">
                 Sair
               </button>
             </form>
@@ -33,25 +41,66 @@ export default async function DashboardPage() {
 
       {/* Conteúdo */}
       <main className="max-w-6xl mx-auto px-6 py-10">
+
+        {/* Banner de onboarding pendente */}
+        {!onboardingCompleto && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-6 py-5 mb-8 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-amber-900">Configure seu sistema antes de começar</p>
+              <p className="text-sm text-amber-700 mt-0.5">
+                Leva menos de 1 minuto. A IA vai aprender como funciona o seu negócio.
+              </p>
+            </div>
+            <Link
+              href="/onboarding"
+              className="flex-shrink-0 bg-amber-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
+            >
+              Configurar agora
+            </Link>
+          </div>
+        )}
+
+        {/* Saudação */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800">
             Olá, {usuario.name?.split(" ")[0]} 👋
           </h2>
           <p className="text-gray-500 mt-1">
-            Bem-vindo ao {usuario.tenantNome}. O sistema está pronto para uso.
+            {onboardingCompleto
+              ? `Bem-vindo ao ${usuario.tenantNome}. O que vamos registrar hoje?`
+              : `Bem-vindo ao ${usuario.tenantNome}. Configure o sistema para começar.`}
           </p>
         </div>
 
-        {/* Cards de módulos — em breve */}
+        {/* Cards de módulos */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { titulo: "Movimentos", descricao: "Registre entradas e saídas", icone: "💰", disponivel: false },
-            { titulo: "Pessoas", descricao: "Clientes, fornecedores e equipe", icone: "👥", disponivel: false },
-            { titulo: "Produtos", descricao: "Estoque e serviços", icone: "📦", disponivel: false },
+            {
+              titulo: "Movimentos",
+              descricao: "Registre entradas e saídas",
+              icone: "💰",
+              disponivel: false,
+            },
+            {
+              titulo: "Pessoas",
+              descricao: "Clientes, fornecedores e equipe",
+              icone: "👥",
+              disponivel: false,
+            },
+            {
+              titulo: "Produtos",
+              descricao: "Estoque e serviços",
+              icone: "📦",
+              disponivel: false,
+            },
           ].map((modulo) => (
             <div
               key={modulo.titulo}
-              className={`bg-white rounded-xl border p-6 ${modulo.disponivel ? "border-gray-200 cursor-pointer hover:shadow-sm" : "border-gray-100 opacity-60"}`}
+              className={`bg-white rounded-xl border p-6 ${
+                modulo.disponivel
+                  ? "border-gray-200 cursor-pointer hover:shadow-sm"
+                  : "border-gray-100 opacity-60"
+              }`}
             >
               <div className="text-3xl mb-3">{modulo.icone}</div>
               <h3 className="font-semibold text-gray-800">{modulo.titulo}</h3>
@@ -64,6 +113,27 @@ export default async function DashboardPage() {
             </div>
           ))}
         </div>
+
+        {/* Status do onboarding */}
+        {onboardingCompleto && (
+          <div className="mt-8 bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Guarda-roupa configurado</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Segmento: {config?.segmento}
+                </p>
+              </div>
+              <Link
+                href="/onboarding"
+                className="text-xs text-blue-700 hover:underline"
+              >
+                Reconfigurar
+              </Link>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );

@@ -163,7 +163,7 @@ model Movimento {
   id               String          @id @default(uuid())
   tenantId         String          @map("tenant_id")
   tipo             TipoMovimento
-  subtipo          String
+  subtipo          SubtipoMovimento
   dataMovimento    DateTime        @map("data_movimento")
   dataCompetencia  DateTime        @map("data_competencia")
   valor            Decimal         @db.Decimal(15, 2)
@@ -199,6 +199,11 @@ enum StatusMovimento {
   RASCUNHO
   CONFIRMADO
   CANCELADO
+}
+enum SubtipoMovimento {
+  ENTRADA
+  SAIDA
+  TRANSFERENCIA
 }
 
 model MovimentoItem {
