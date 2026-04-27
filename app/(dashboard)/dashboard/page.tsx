@@ -9,7 +9,6 @@ export default async function DashboardPage() {
 
   const usuario = sessao.user as any;
 
-  // Verifica se onboarding foi feito
   const tenant = await prisma.tenant.findUnique({
     where: { id: usuario.tenantId },
     select: { configuracoes: true },
@@ -18,10 +17,32 @@ export default async function DashboardPage() {
   const config = tenant?.configuracoes as any;
   const onboardingCompleto = config?.onboardingCompleto === true;
 
+  const modulos = [
+    {
+      titulo: "Movimentos",
+      descricao: "Registre entradas e saídas",
+      icone: "💰",
+      disponivel: false,
+      href: null as string | null,
+    },
+    {
+      titulo: "Pessoas",
+      descricao: "Clientes, fornecedores e equipe",
+      icone: "👥",
+      disponivel: true,
+      href: "/pessoas",
+    },
+    {
+      titulo: "Produtos",
+      descricao: "Estoque e serviços",
+      icone: "📦",
+      disponivel: false,
+      href: null as string | null,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold text-blue-900">Gabisystem</h1>
@@ -39,10 +60,8 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      {/* Conteúdo */}
       <main className="max-w-6xl mx-auto px-6 py-10">
 
-        {/* Banner de onboarding pendente */}
         {!onboardingCompleto && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-6 py-5 mb-8 flex items-center justify-between gap-4">
             <div>
@@ -60,7 +79,6 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Saudação */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800">
             Olá, {usuario.name?.split(" ")[0]} 👋
@@ -72,62 +90,52 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {/* Cards de módulos */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            {
-              titulo: "Movimentos",
-              descricao: "Registre entradas e saídas",
-              icone: "💰",
-              disponivel: false,
-            },
-            {
-              titulo: "Pessoas",
-              descricao: "Clientes, fornecedores e equipe",
-              icone: "👥",
-              disponivel: false,
-            },
-            {
-              titulo: "Produtos",
-              descricao: "Estoque e serviços",
-              icone: "📦",
-              disponivel: false,
-            },
-          ].map((modulo) => (
-            <div
-              key={modulo.titulo}
-              className={`bg-white rounded-xl border p-6 ${
-                modulo.disponivel
-                  ? "border-gray-200 cursor-pointer hover:shadow-sm"
-                  : "border-gray-100 opacity-60"
-              }`}
-            >
-              <div className="text-3xl mb-3">{modulo.icone}</div>
-              <h3 className="font-semibold text-gray-800">{modulo.titulo}</h3>
-              <p className="text-sm text-gray-500 mt-1">{modulo.descricao}</p>
-              {!modulo.disponivel && (
-                <span className="inline-block mt-3 text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
-                  Em breve
-                </span>
-              )}
-            </div>
-          ))}
+          {modulos.map((modulo) => {
+            const inner = (
+              <>
+                <div className="text-3xl mb-3">{modulo.icone}</div>
+                <h3 className="font-semibold text-gray-800">{modulo.titulo}</h3>
+                <p className="text-sm text-gray-500 mt-1">{modulo.descricao}</p>
+                {!modulo.disponivel && (
+                  <span className="inline-block mt-3 text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
+                    Em breve
+                  </span>
+                )}
+              </>
+            );
+
+            if (modulo.disponivel && modulo.href) {
+              return (
+                <Link
+                  key={modulo.titulo}
+                  href={modulo.href}
+                  className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-sm hover:border-blue-200 transition-all"
+                >
+                  {inner}
+                </Link>
+              );
+            }
+
+            return (
+              <div
+                key={modulo.titulo}
+                className="bg-white rounded-xl border border-gray-100 p-6 opacity-60"
+              >
+                {inner}
+              </div>
+            );
+          })}
         </div>
 
-        {/* Status do onboarding */}
         {onboardingCompleto && (
           <div className="mt-8 bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-800">Guarda-roupa configurado</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Segmento: {config?.segmento}
-                </p>
+                <p className="text-xs text-gray-500 mt-0.5">Segmento: {config?.segmento}</p>
               </div>
-              <Link
-                href="/onboarding"
-                className="text-xs text-blue-700 hover:underline"
-              >
+              <Link href="/onboarding" className="text-xs text-blue-700 hover:underline">
                 Reconfigurar
               </Link>
             </div>
