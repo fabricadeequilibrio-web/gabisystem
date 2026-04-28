@@ -36,8 +36,8 @@ export default async function DashboardPage() {
       titulo: "Produtos",
       descricao: "Estoque e serviços",
       icone: "📦",
-      disponivel: false,
-      href: null as string | null,
+      disponivel: true,
+      href: "/produtos",
     },
   ];
 

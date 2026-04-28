@@ -111,6 +111,7 @@ model Produto {
   precoReferencia Decimal?     @map("preco_referencia") @db.Decimal(15, 2)
   grupo           String?
   subgrupo        String?
+  tipoOperacao    String?      @map("tipo_operacao")
   metadadosIA     Json         @default("{}") @map("metadados_ia")
   ativo           Boolean      @default(true)
   criadoEm        DateTime     @default(now()) @map("criado_em")
