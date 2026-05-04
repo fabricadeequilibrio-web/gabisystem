@@ -142,9 +142,14 @@ export default async function DashboardPage() {
                 <p className="text-sm font-medium text-gray-800">Guarda-roupa configurado</p>
                 <p className="text-xs text-gray-500 mt-0.5">Segmento: {config?.segmento}</p>
               </div>
-              <Link href="/onboarding" className="text-xs text-blue-700 hover:underline">
-                Reconfigurar
-              </Link>
+              <div className="flex items-center gap-4">
+                <Link href="/configuracao-fiscal" className="text-xs text-blue-700 hover:underline">
+                  Configuração fiscal
+                </Link>
+                <Link href="/onboarding" className="text-xs text-gray-500 hover:underline">
+                  Reconfigurar
+                </Link>
+              </div>
             </div>
           </div>
         )}
