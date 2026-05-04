@@ -29,8 +29,8 @@ export default async function DashboardPage() {
       titulo: "Movimentos",
       descricao: "Registre movimentos completos",
       icone: "🔄",
-      disponivel: false,
-      href: null as string | null,
+      disponivel: true,
+      href: "/movimentos",
     },
     {
       titulo: "Pessoas",

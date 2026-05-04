@@ -88,6 +88,7 @@ model Pessoa {
   tenant          Tenant                 @relation(fields: [tenantId], references: [id])
   movimentoItens  MovimentoItem[]
   lancamentos     LancamentoFinanceiro[]
+  movimentos      Movimento[]
 
   @@map("pessoas")
 }
@@ -268,33 +269,39 @@ enum StatusLancamento {
 model Movimento {
   id                     String          @id @default(uuid())
   tenantId               String          @map("tenant_id")
-  tipo                   TipoMovimento
-  subtipo                SubtipoMovimento
+  tipoOperacao           TipoOperacao    @map("tipo_operacao")
+  pessoaId               String          @map("pessoa_id")
+  lancamentoFinanceiroId String          @map("lancamento_financeiro_id")
+  movimentoPaiId         String?         @map("movimento_pai_id")
   dataMovimento          DateTime        @map("data_movimento")
   dataCompetencia        DateTime        @map("data_competencia")
-  valor                  Decimal         @db.Decimal(15, 2)
   descricao              String?
   origemRegistro         OrigemRegistro  @default(MANUAL) @map("origem_registro")
   textoOriginal          Json?           @map("texto_original")
   status                 StatusMovimento @default(RASCUNHO)
-  lancamentoFinanceiroId String?         @map("lancamento_financeiro_id")
   criadoPor              String          @map("criado_por")
   criadoEm               DateTime        @default(now()) @map("criado_em")
 
   // Relações
   tenant              Tenant                @relation(fields: [tenantId], references: [id])
   usuario             Usuario               @relation(fields: [criadoPor], references: [id])
-  lancamentoFinanc    LancamentoFinanceiro? @relation(fields: [lancamentoFinanceiroId], references: [id])
+  pessoa              Pessoa                @relation(fields: [pessoaId], references: [id])
+  lancamentoFinanc    LancamentoFinanceiro  @relation(fields: [lancamentoFinanceiroId], references: [id])
+  movimentoPai        Movimento?            @relation("MovimentoFilhos", fields: [movimentoPaiId], references: [id])
+  movimentosFilhos    Movimento[]           @relation("MovimentoFilhos")
   itens               MovimentoItem[]
   contabil            MovimentoContabil[]
 
   @@map("movimentos")
 }
 
-enum TipoMovimento {
-  FINANCEIRO
-  PRODUTO
-  PESSOA
+enum TipoOperacao {
+  VENDA
+  COMPRA
+  DESPESA
+  RECEITA
+  TRANSFERENCIA
+  OUTROS
 }
 
 enum OrigemRegistro {
@@ -307,11 +314,6 @@ enum StatusMovimento {
   RASCUNHO
   CONFIRMADO
   CANCELADO
-}
-enum SubtipoMovimento {
-  ENTRADA
-  SAIDA
-  TRANSFERENCIA
 }
 
 model MovimentoItem {
