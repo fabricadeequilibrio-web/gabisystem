@@ -19,9 +19,16 @@ export default async function DashboardPage() {
 
   const modulos = [
     {
-      titulo: "Movimentos",
-      descricao: "Registre entradas e saídas",
+      titulo: "Financeiro",
+      descricao: "Lançamentos, contas e pagamentos",
       icone: "💰",
+      disponivel: true,
+      href: "/financeiro",
+    },
+    {
+      titulo: "Movimentos",
+      descricao: "Registre movimentos completos",
+      icone: "🔄",
       disponivel: false,
       href: null as string | null,
     },
@@ -90,7 +97,7 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {modulos.map((modulo) => {
             const inner = (
               <>
